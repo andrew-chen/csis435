@@ -1,0 +1,40 @@
+class {
+	*vtable
+	data
+}
+
+/*
+
+keywords:
+	class new
+
+operator:
+	::
+
+class_functionName
+
+*/
+
+vtable 
+	/* an array of function pointers */
+
+new
+	result = (class*)malloc(sizeof(data)+sizeof(vtable*));
+	result->vtable = class_vtable;
+	// make result->data all be zero
+class_new
+
+/*
+class Foo {
+	void hello();
+	void goodbye();
+};
+
+void Foo::goodbye() {
+};
+
+class Bar:Foo {
+	void hello();
+	void world();
+};
+*/
