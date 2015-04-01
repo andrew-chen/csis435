@@ -1,0 +1,365 @@
+Created by PLY version 3.4 (http://www.dabeaz.com/ply)
+
+Grammar
+
+Rule 0     S' -> statement
+Rule 1     statement_list -> <empty>
+Rule 2     statement_list -> statement statement_list
+Rule 3     statement -> expression
+Rule 4     statement -> assignment
+Rule 5     assignment -> ATOM = expression
+Rule 6     expression -> ( LAMBDA ( atom_list ) expression )
+Rule 7     expression -> ( MACRO ( atom_list ) expression )
+Rule 8     expression -> ( expression_list )
+Rule 9     atom_list -> <empty>
+Rule 10    atom_list -> atom_list ATOM
+Rule 11    expression_list -> <empty>
+Rule 12    expression_list -> expression_list expression
+Rule 13    expression -> NUMBER
+Rule 14    expression -> ATOM
+Rule 15    expression -> QUOTE expression
+
+Terminals, with rules where they appear
+
+(                    : 6 6 7 7 8
+)                    : 6 6 7 7 8
+=                    : 5
+ATOM                 : 5 10 14
+LAMBDA               : 6
+MACRO                : 7
+NUMBER               : 13
+QUOTE                : 15
+error                : 
+
+Nonterminals, with rules where they appear
+
+assignment           : 4
+atom_list            : 6 7 10
+expression           : 3 5 6 7 12 15
+expression_list      : 8 12
+statement            : 2 0
+statement_list       : 2
+
+Parsing method: LALR
+
+state 0
+
+    (0) S' -> . statement
+    (3) statement -> . expression
+    (4) statement -> . assignment
+    (6) expression -> . ( LAMBDA ( atom_list ) expression )
+    (7) expression -> . ( MACRO ( atom_list ) expression )
+    (8) expression -> . ( expression_list )
+    (13) expression -> . NUMBER
+    (14) expression -> . ATOM
+    (15) expression -> . QUOTE expression
+    (5) assignment -> . ATOM = expression
+
+    (               shift and go to state 6
+    NUMBER          shift and go to state 3
+    ATOM            shift and go to state 2
+    QUOTE           shift and go to state 4
+
+    assignment                     shift and go to state 1
+    expression                     shift and go to state 7
+    statement                      shift and go to state 5
+
+state 1
+
+    (4) statement -> assignment .
+
+    $end            reduce using rule 4 (statement -> assignment .)
+
+
+state 2
+
+    (14) expression -> ATOM .
+    (5) assignment -> ATOM . = expression
+
+    $end            reduce using rule 14 (expression -> ATOM .)
+    =               shift and go to state 8
+
+
+state 3
+
+    (13) expression -> NUMBER .
+
+    $end            reduce using rule 13 (expression -> NUMBER .)
+    )               reduce using rule 13 (expression -> NUMBER .)
+    (               reduce using rule 13 (expression -> NUMBER .)
+    NUMBER          reduce using rule 13 (expression -> NUMBER .)
+    ATOM            reduce using rule 13 (expression -> NUMBER .)
+    QUOTE           reduce using rule 13 (expression -> NUMBER .)
+
+
+state 4
+
+    (15) expression -> QUOTE . expression
+    (6) expression -> . ( LAMBDA ( atom_list ) expression )
+    (7) expression -> . ( MACRO ( atom_list ) expression )
+    (8) expression -> . ( expression_list )
+    (13) expression -> . NUMBER
+    (14) expression -> . ATOM
+    (15) expression -> . QUOTE expression
+
+    (               shift and go to state 6
+    NUMBER          shift and go to state 3
+    ATOM            shift and go to state 9
+    QUOTE           shift and go to state 4
+
+    expression                     shift and go to state 10
+
+state 5
+
+    (0) S' -> statement .
+
+
+
+state 6
+
+    (6) expression -> ( . LAMBDA ( atom_list ) expression )
+    (7) expression -> ( . MACRO ( atom_list ) expression )
+    (8) expression -> ( . expression_list )
+    (11) expression_list -> .
+    (12) expression_list -> . expression_list expression
+
+    LAMBDA          shift and go to state 13
+    MACRO           shift and go to state 12
+    )               reduce using rule 11 (expression_list -> .)
+    (               reduce using rule 11 (expression_list -> .)
+    NUMBER          reduce using rule 11 (expression_list -> .)
+    ATOM            reduce using rule 11 (expression_list -> .)
+    QUOTE           reduce using rule 11 (expression_list -> .)
+
+    expression_list                shift and go to state 11
+
+state 7
+
+    (3) statement -> expression .
+
+    $end            reduce using rule 3 (statement -> expression .)
+
+
+state 8
+
+    (5) assignment -> ATOM = . expression
+    (6) expression -> . ( LAMBDA ( atom_list ) expression )
+    (7) expression -> . ( MACRO ( atom_list ) expression )
+    (8) expression -> . ( expression_list )
+    (13) expression -> . NUMBER
+    (14) expression -> . ATOM
+    (15) expression -> . QUOTE expression
+
+    (               shift and go to state 6
+    NUMBER          shift and go to state 3
+    ATOM            shift and go to state 9
+    QUOTE           shift and go to state 4
+
+    expression                     shift and go to state 14
+
+state 9
+
+    (14) expression -> ATOM .
+
+    $end            reduce using rule 14 (expression -> ATOM .)
+    )               reduce using rule 14 (expression -> ATOM .)
+    (               reduce using rule 14 (expression -> ATOM .)
+    NUMBER          reduce using rule 14 (expression -> ATOM .)
+    ATOM            reduce using rule 14 (expression -> ATOM .)
+    QUOTE           reduce using rule 14 (expression -> ATOM .)
+
+
+state 10
+
+    (15) expression -> QUOTE expression .
+
+    $end            reduce using rule 15 (expression -> QUOTE expression .)
+    )               reduce using rule 15 (expression -> QUOTE expression .)
+    (               reduce using rule 15 (expression -> QUOTE expression .)
+    NUMBER          reduce using rule 15 (expression -> QUOTE expression .)
+    ATOM            reduce using rule 15 (expression -> QUOTE expression .)
+    QUOTE           reduce using rule 15 (expression -> QUOTE expression .)
+
+
+state 11
+
+    (8) expression -> ( expression_list . )
+    (12) expression_list -> expression_list . expression
+    (6) expression -> . ( LAMBDA ( atom_list ) expression )
+    (7) expression -> . ( MACRO ( atom_list ) expression )
+    (8) expression -> . ( expression_list )
+    (13) expression -> . NUMBER
+    (14) expression -> . ATOM
+    (15) expression -> . QUOTE expression
+
+    )               shift and go to state 15
+    (               shift and go to state 6
+    NUMBER          shift and go to state 3
+    ATOM            shift and go to state 9
+    QUOTE           shift and go to state 4
+
+    expression                     shift and go to state 16
+
+state 12
+
+    (7) expression -> ( MACRO . ( atom_list ) expression )
+
+    (               shift and go to state 17
+
+
+state 13
+
+    (6) expression -> ( LAMBDA . ( atom_list ) expression )
+
+    (               shift and go to state 18
+
+
+state 14
+
+    (5) assignment -> ATOM = expression .
+
+    $end            reduce using rule 5 (assignment -> ATOM = expression .)
+
+
+state 15
+
+    (8) expression -> ( expression_list ) .
+
+    $end            reduce using rule 8 (expression -> ( expression_list ) .)
+    )               reduce using rule 8 (expression -> ( expression_list ) .)
+    (               reduce using rule 8 (expression -> ( expression_list ) .)
+    NUMBER          reduce using rule 8 (expression -> ( expression_list ) .)
+    ATOM            reduce using rule 8 (expression -> ( expression_list ) .)
+    QUOTE           reduce using rule 8 (expression -> ( expression_list ) .)
+
+
+state 16
+
+    (12) expression_list -> expression_list expression .
+
+    )               reduce using rule 12 (expression_list -> expression_list expression .)
+    (               reduce using rule 12 (expression_list -> expression_list expression .)
+    NUMBER          reduce using rule 12 (expression_list -> expression_list expression .)
+    ATOM            reduce using rule 12 (expression_list -> expression_list expression .)
+    QUOTE           reduce using rule 12 (expression_list -> expression_list expression .)
+
+
+state 17
+
+    (7) expression -> ( MACRO ( . atom_list ) expression )
+    (9) atom_list -> .
+    (10) atom_list -> . atom_list ATOM
+
+    )               reduce using rule 9 (atom_list -> .)
+    ATOM            reduce using rule 9 (atom_list -> .)
+
+    atom_list                      shift and go to state 19
+
+state 18
+
+    (6) expression -> ( LAMBDA ( . atom_list ) expression )
+    (9) atom_list -> .
+    (10) atom_list -> . atom_list ATOM
+
+    )               reduce using rule 9 (atom_list -> .)
+    ATOM            reduce using rule 9 (atom_list -> .)
+
+    atom_list                      shift and go to state 20
+
+state 19
+
+    (7) expression -> ( MACRO ( atom_list . ) expression )
+    (10) atom_list -> atom_list . ATOM
+
+    )               shift and go to state 21
+    ATOM            shift and go to state 22
+
+
+state 20
+
+    (6) expression -> ( LAMBDA ( atom_list . ) expression )
+    (10) atom_list -> atom_list . ATOM
+
+    )               shift and go to state 23
+    ATOM            shift and go to state 22
+
+
+state 21
+
+    (7) expression -> ( MACRO ( atom_list ) . expression )
+    (6) expression -> . ( LAMBDA ( atom_list ) expression )
+    (7) expression -> . ( MACRO ( atom_list ) expression )
+    (8) expression -> . ( expression_list )
+    (13) expression -> . NUMBER
+    (14) expression -> . ATOM
+    (15) expression -> . QUOTE expression
+
+    (               shift and go to state 6
+    NUMBER          shift and go to state 3
+    ATOM            shift and go to state 9
+    QUOTE           shift and go to state 4
+
+    expression                     shift and go to state 24
+
+state 22
+
+    (10) atom_list -> atom_list ATOM .
+
+    )               reduce using rule 10 (atom_list -> atom_list ATOM .)
+    ATOM            reduce using rule 10 (atom_list -> atom_list ATOM .)
+
+
+state 23
+
+    (6) expression -> ( LAMBDA ( atom_list ) . expression )
+    (6) expression -> . ( LAMBDA ( atom_list ) expression )
+    (7) expression -> . ( MACRO ( atom_list ) expression )
+    (8) expression -> . ( expression_list )
+    (13) expression -> . NUMBER
+    (14) expression -> . ATOM
+    (15) expression -> . QUOTE expression
+
+    (               shift and go to state 6
+    NUMBER          shift and go to state 3
+    ATOM            shift and go to state 9
+    QUOTE           shift and go to state 4
+
+    expression                     shift and go to state 25
+
+state 24
+
+    (7) expression -> ( MACRO ( atom_list ) expression . )
+
+    )               shift and go to state 26
+
+
+state 25
+
+    (6) expression -> ( LAMBDA ( atom_list ) expression . )
+
+    )               shift and go to state 27
+
+
+state 26
+
+    (7) expression -> ( MACRO ( atom_list ) expression ) .
+
+    $end            reduce using rule 7 (expression -> ( MACRO ( atom_list ) expression ) .)
+    )               reduce using rule 7 (expression -> ( MACRO ( atom_list ) expression ) .)
+    (               reduce using rule 7 (expression -> ( MACRO ( atom_list ) expression ) .)
+    NUMBER          reduce using rule 7 (expression -> ( MACRO ( atom_list ) expression ) .)
+    ATOM            reduce using rule 7 (expression -> ( MACRO ( atom_list ) expression ) .)
+    QUOTE           reduce using rule 7 (expression -> ( MACRO ( atom_list ) expression ) .)
+
+
+state 27
+
+    (6) expression -> ( LAMBDA ( atom_list ) expression ) .
+
+    $end            reduce using rule 6 (expression -> ( LAMBDA ( atom_list ) expression ) .)
+    )               reduce using rule 6 (expression -> ( LAMBDA ( atom_list ) expression ) .)
+    (               reduce using rule 6 (expression -> ( LAMBDA ( atom_list ) expression ) .)
+    NUMBER          reduce using rule 6 (expression -> ( LAMBDA ( atom_list ) expression ) .)
+    ATOM            reduce using rule 6 (expression -> ( LAMBDA ( atom_list ) expression ) .)
+    QUOTE           reduce using rule 6 (expression -> ( LAMBDA ( atom_list ) expression ) .)
+

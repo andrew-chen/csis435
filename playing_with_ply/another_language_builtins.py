@@ -82,7 +82,9 @@ def evaluate(arg,scope={}):
 			return print_result(result)
                 else:
 			try: result = caller()
-			except: assert(False)
+			except:
+				raise
+				assert(False)
 			return print_result(result)
         elif isinstance(arg,int):
 		# integers resolve to themselves, so they do not need to be quoted
