@@ -1,4 +1,5 @@
-import pycparser # the C parser written in Python
+import c_parser # the C parser written in Python
+import c_ast # the C parser written in Python
 import sys # so we can access command-line args
 import pprint # so we can pretty-print our output
 
@@ -54,14 +55,14 @@ def normalize_type_name(x):
     return x
 def get_type_names(x):
     the_type = dict(x.children())["type"]
-    if isinstance(the_type,pycparser.c_ast.TypeDecl):
+    if isinstance(the_type,c_ast.TypeDecl):
         return normalize_type_name(the_type.declname)
     result = normalize_type_name(dict(x.children())["type"].names)
     return result
 def get_type(x):
     return dict(x.children())["type"]
 
-class SymbolTableBuilder(pycparser.c_ast.NodeVisitor):
+class SymbolTableBuilder(c_ast.NodeVisitor):
     """
         This subclass of NodeVisitor builds the symbol table.
         Still a work-in-progress.
@@ -102,11 +103,11 @@ class SymbolTableBuilder(pycparser.c_ast.NodeVisitor):
                     d = dict(node.children()[0][1].children())
                     return_type = d["type"]
                 del what.path[-1]
-                if isinstance(return_type,pycparser.c_ast.TypeDecl):
+                if isinstance(return_type,c_ast.TypeDecl):
                     what["return"] = get_type_names(return_type)
-                elif isinstance(return_type,pycparser.c_ast.PtrDecl):
+                elif isinstance(return_type,c_ast.PtrDecl):
                     ptr_to_what = get_type(dict(return_type.children())["type"])
-                    if isinstance(ptr_to_what,pycparser.c_ast.IdentifierType):
+                    if isinstance(ptr_to_what,c_ast.IdentifierType):
                         ptr_to_what = normalize_type_name(ptr_to_what.names)
                     what["return"] = ('',
                         ptr_to_what
@@ -116,30 +117,30 @@ class SymbolTableBuilder(pycparser.c_ast.NodeVisitor):
                 
         elif "visiting_arguments" in self.state:
             the_type = get_type(node)
-            if isinstance(the_type,pycparser.c_ast.PtrDecl):
+            if isinstance(the_type,c_ast.PtrDecl):
                 the_type = ('',normalize_type_name(dict(dict(the_type.children())["type"].children())["type"].names))
             else:
                 the_type = get_type_names(the_type)
             what.current_node().append((node.name,the_type))
         else:
             the_type = get_type(node)
-            if isinstance(the_type,pycparser.c_ast.TypeDecl):
+            if isinstance(the_type,c_ast.TypeDecl):
                 what.insert(node.name,get_type_names(the_type))
-            elif isinstance(the_type,pycparser.c_ast.ArrayDecl):
+            elif isinstance(the_type,c_ast.ArrayDecl):
                 d = dict(the_type.children())
                 dim = d["dim"]
                 the_type = d["type"]
                 what.insert(node.name,(dim.value,get_type_names(the_type)))
-            elif isinstance(the_type,pycparser.c_ast.PtrDecl):
+            elif isinstance(the_type,c_ast.PtrDecl):
                 d = dict(the_type.children())
                 #dim = d["dim"]
                 the_type = d["type"]
                 
                 the_type = get_type(the_type)
-                if isinstance(the_type,pycparser.c_ast.Struct):
+                if isinstance(the_type,c_ast.Struct):
                     the_type_name = "struct "+the_type.name
                 else:
-                    if isinstance(the_type,pycparser.c_ast.IdentifierType):
+                    if isinstance(the_type,c_ast.IdentifierType):
                         the_type_name = normalize_type_name(the_type.names)
                     else:
                         the_type_name = the_type.name
@@ -172,7 +173,7 @@ class SymbolTableBuilder(pycparser.c_ast.NodeVisitor):
     
     def visit_Typedef(self,node):
         item_of_interest = get_type(get_type(node))
-        if isinstance(item_of_interest,pycparser.c_ast.IdentifierType):
+        if isinstance(item_of_interest,c_ast.IdentifierType):
             self.types[node.name] = normalize_type_name(item_of_interest.names)
         else:
             self.types[node.name] = {}
@@ -181,7 +182,7 @@ class SymbolTableBuilder(pycparser.c_ast.NodeVisitor):
                 self.generic_visit(node)
             del self.types.path[-1]
             the_type = get_type(get_type(node))
-            if isinstance(the_type,pycparser.c_ast.Struct):
+            if isinstance(the_type,c_ast.Struct):
                 self.types[node.name] = "struct "+the_type.name
 
 class Identifier(object):
@@ -327,7 +328,7 @@ signed long i;
 } zoo;
 """
 
-    cparser = pycparser.c_parser.CParser()
+    cparser = c_parser.CParser()
     parsed_code = cparser.parse(code_to_parse)
     parsed_code.show()
     dv = SymbolTableBuilder()

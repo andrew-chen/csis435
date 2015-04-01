@@ -1,7 +1,8 @@
 import sys
 import pprint
 
-import pycparser
+import c_parser
+
 import mksymtab
 import mk3ac
 
@@ -221,7 +222,7 @@ int main()
 	exit();
 }
 """
-    cparser = pycparser.c_parser.CParser()
+    cparser = c_parser.CParser()
     parsed_code = cparser.parse(code_to_parse)
     parsed_code.show()
     st = mksymtab.makeSymbolTable(parsed_code)

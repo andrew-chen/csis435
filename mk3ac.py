@@ -1,4 +1,5 @@
-import pycparser # the C parser written in Python
+import c_ast # the C parser written in Python
+import c_parser # the C parser written in Python
 import sys # so we can access command-line args
 import pprint # so we can pretty-print our output
 
@@ -17,7 +18,7 @@ class Label(object):
         self.kwargs = kwargs
     pass
 
-class CodeBuilder(pycparser.c_ast.NodeVisitor):
+class CodeBuilder(c_ast.NodeVisitor):
     def __init__(self,function_name,symbol_table):
         self.the_code = []
         self.the_symbol_table = symbol_table
@@ -247,7 +248,7 @@ int sum_of_squares(int x) {
     return result;
 };
 """
-    cparser = pycparser.c_parser.CParser()
+    cparser = c_parser.CParser()
     parsed_code = cparser.parse(code_to_parse)
     parsed_code.show()
     st = mksymtab.makeSymbolTable(parsed_code)
