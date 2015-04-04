@@ -39,6 +39,10 @@ unsigned long h;
 signed long i;
 } zoo;
 class Test {
+	void foo();
 	int i;
+};
+void Test::foo() {
+return;
 };
 
