@@ -257,6 +257,9 @@ class CGenerator(object):
     def visit_EllipsisParam(self, n):
         return '...'
 
+    def visit_Class(self, n):
+        return self._generate_struct_union(n, 'class')
+
     def visit_Struct(self, n):
         return self._generate_struct_union(n, 'struct')
 
@@ -280,16 +283,41 @@ class CGenerator(object):
         """ Generates code for structs and unions. name should be either
             'struct' or union.
         """
+        is_class = False
+        if name in ["class"]:
+            is_class = True
+            vtable_index = 0
+            c2 = ''
+            name = 'struct'
+            class_type = 'struct '+n.name
+            new_return_type = 'struct '+n.name+' *'
+            c = new_return_type+' new_'+n.name+"() {\n"+new_return_type+" result;\nresult = ("+new_return_type+")malloc(sizeof("+class_type+"));\n"
         s = name + ' ' + (n.name or '')
         if n.decls:
             s += '\n'
             s += self._make_indent()
             self.indent_level += 2
             s += '{\n'
+            s += self._make_indent()
+            s += 'void ** vtable;\n'
             for decl in n.decls:
+                if is_class:
+                    if isinstance(decl.type,c_ast.FuncDecl):
+			    mangled_name = n.name+"_"+decl.name
+			    print "mangled_name is: "+mangled_name
+			    c2 += "vtable["+str(vtable_index)+"] = (void*)"+mangled_name+";\n"
+			    vtable_index += 1
+			    continue
                 s += self._generate_stmt(decl)
+            if is_class:
+                c += "vtable =(void **)malloc("+str(vtable_index)+"*sizeof(void*));\n"
+                c += c2
+                c += "}\n"
             self.indent_level -= 2
             s += self._make_indent() + '}'
+            if is_class:
+                s += "\n"
+                s += c
         return s
 
     def _generate_stmt(self, n, add_indent=False):
