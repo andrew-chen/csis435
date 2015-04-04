@@ -619,6 +619,20 @@ class Struct(Node):
 
     attr_names = ('name',)
 
+class Class(Node):
+    def __init__(self, name, decls, coord=None):
+        self.name = name
+        self.decls = decls
+        self.coord = coord
+
+    def children(self):
+        nodelist = []
+        for i, child in enumerate(self.decls or []):
+            nodelist.append(("decls[%d]" % i, child))
+        return tuple(nodelist)
+
+    attr_names = ('name',)
+
 class StructRef(Node):
     def __init__(self, name, type, field, coord=None):
         self.name = name
@@ -633,6 +647,32 @@ class StructRef(Node):
         return tuple(nodelist)
 
     attr_names = ('type',)
+
+class ScopeResolution(Node):
+    def __init__(self, scope, name, coord=None):
+        self.scope = scope
+        self.name = name
+        self.coord = coord
+
+    def children(self):
+        nodelist = []
+        if self.scope is not None: nodelist.append(("scope", self.scope))
+        if self.name is not None: nodelist.append(("name", self.name))
+        return tuple(nodelist)
+
+    attr_names = ()
+
+class Inheritance(Node):
+    def __init__(self, subclass, superclass, coord=None):
+        self.subclass = subclass
+        self.superclass = superclass
+        self.coord = coord
+
+    def children(self):
+        nodelist = []
+        return tuple(nodelist)
+
+    attr_names = ('subclass','superclass',)
 
 class Switch(Node):
     def __init__(self, cond, stmt, coord=None):
