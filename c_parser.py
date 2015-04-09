@@ -467,8 +467,10 @@ class CParser(PLYParser):
             return c_ast.Struct
         elif token == 'union':
             return c_ast.Union
-	else:
+	elif token == 'class':
             return c_ast.Class
+	else:
+            return c_ast.SubClass
 
     ##
     ## Precedence and associativity of operators
@@ -611,7 +613,7 @@ class CParser(PLYParser):
             # enumeration.
             #
             ty = spec['type']
-            s_u_or_e = (c_ast.Struct, c_ast.Union, c_ast.Enum, c_ast.Class)
+            s_u_or_e = (c_ast.Struct, c_ast.Union, c_ast.Enum, c_ast.Class, c_ast_SubClass)
             if len(ty) == 1 and isinstance(ty[0], s_u_or_e):
                 decls = [c_ast.Decl(
                     name=None,
@@ -803,11 +805,20 @@ class CParser(PLYParser):
     def p_struct_or_union_specifier_3(self, p):
         """ struct_or_union_specifier   : struct_or_union ID brace_open struct_declaration_list brace_close
                                         | struct_or_union TYPEID brace_open struct_declaration_list brace_close
+                                        | struct_or_union ID : ID brace_open struct_declaration_list brace_close
+                                        | struct_or_union ID : TYPEID brace_open struct_declaration_list brace_close
+                                        | struct_or_union TYPEID : ID brace_open struct_declaration_list brace_close
+                                        | struct_or_union TYPEID : TYPEID brace_open struct_declaration_list brace_close
         """
+        if len(p) > 5:
+            decls = p[6]
+            establish_subclass_relationship(p[2],p[4])
+        else:
+            decls = p[4]
         klass = self._select_struct_union_class(p[1])
         p[0] = klass(
             name=p[2],
-            decls=p[4],
+            decls=,
             coord=self._coord(p.lineno(2)))
 
     def p_struct_or_union(self, p):
@@ -973,9 +984,13 @@ class CParser(PLYParser):
 
     def p_direct_declarator_1(self, p):
         """ direct_declarator   : ID
+				| ID SCOPE_RESOLUTION ID
         """
+        declname = p[1]
+        if len(p) > 2:
+            declname += "_"+p[3]
         p[0] = c_ast.TypeDecl(
-            declname=p[1],
+            declname=declname,
             type=None,
             quals=None,
             coord=self._coord(p.lineno(1)))
