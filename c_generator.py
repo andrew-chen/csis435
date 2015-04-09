@@ -64,6 +64,8 @@ class CGenerator(object):
             # Always parenthesize the argument of sizeof since it can be
             # a name.
             return 'sizeof(%s)' % self.visit(n.expr)
+        elif n.op == 'new':
+            return '(new_'+operand+'())'
         else:
             return '%s%s' % (n.op, operand)
 
@@ -314,7 +316,7 @@ class CGenerator(object):
                 c += c2
                 c += "}\n"
             self.indent_level -= 2
-            s += self._make_indent() + '}'
+            s += self._make_indent() + '};'
             if is_class:
                 s += "\n"
                 s += c
