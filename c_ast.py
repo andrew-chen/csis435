@@ -648,20 +648,6 @@ class StructRef(Node):
 
     attr_names = ('type',)
 
-class ScopeResolution(Node):
-    def __init__(self, scope, name, coord=None):
-        self.scope = scope
-        self.name = name
-        self.coord = coord
-
-    def children(self):
-        nodelist = []
-        if self.scope is not None: nodelist.append(("scope", self.scope))
-        if self.name is not None: nodelist.append(("name", self.name))
-        return tuple(nodelist)
-
-    attr_names = ()
-
 class Inheritance(Node):
     def __init__(self, subclass, superclass, coord=None):
         self.subclass = subclass
