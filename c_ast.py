@@ -633,6 +633,20 @@ class Class(Node):
 
     attr_names = ('name',)
 
+class SubClass(Node):
+    def __init__(self, name, decls, coord=None):
+        self.name = name
+        self.decls = decls
+        self.coord = coord
+
+    def children(self):
+        nodelist = []
+        for i, child in enumerate(self.decls or []):
+            nodelist.append(("decls[%d]" % i, child))
+        return tuple(nodelist)
+
+    attr_names = ('name',)
+
 class StructRef(Node):
     def __init__(self, name, type, field, coord=None):
         self.name = name
