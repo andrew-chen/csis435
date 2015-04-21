@@ -18,14 +18,23 @@ sys.path.extend(['.', '..'])
 import c_parser, c_generator
 from pycparser_utilities import parse_file
 
+import mksymtab
+import class_information
+import pprint
 
 def translate_to_c(filename):
     """ Simply use the c_generator module to emit a parsed AST.
     """
     ast = parse_file(filename, use_cpp=True)
     ast.show()
-    generator = c_generator.CGenerator()
+    st = mksymtab.makeSymbolTable(ast)
+    generator = c_generator.CGenerator(st)
     print(generator.visit(ast))
+    pprint.pprint(st.types.values)
+    pprint.pprint(st.values.values)
+    print("about to dump class information")
+    class_information.dump_info()
+
 
 
 def _zz_test_translate():
