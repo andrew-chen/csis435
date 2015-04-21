@@ -613,7 +613,7 @@ class CParser(PLYParser):
             # enumeration.
             #
             ty = spec['type']
-            s_u_or_e = (c_ast.Struct, c_ast.Union, c_ast.Enum, c_ast.Class, c_ast_SubClass)
+            s_u_or_e = (c_ast.Struct, c_ast.Union, c_ast.Enum, c_ast.Class, c_ast.SubClass)
             if len(ty) == 1 and isinstance(ty[0], s_u_or_e):
                 decls = [c_ast.Decl(
                     name=None,
@@ -805,12 +805,12 @@ class CParser(PLYParser):
     def p_struct_or_union_specifier_3(self, p):
         """ struct_or_union_specifier   : struct_or_union ID brace_open struct_declaration_list brace_close
                                         | struct_or_union TYPEID brace_open struct_declaration_list brace_close
-                                        | struct_or_union ID : ID brace_open struct_declaration_list brace_close
-                                        | struct_or_union ID : TYPEID brace_open struct_declaration_list brace_close
-                                        | struct_or_union TYPEID : ID brace_open struct_declaration_list brace_close
-                                        | struct_or_union TYPEID : TYPEID brace_open struct_declaration_list brace_close
+                                        | struct_or_union ID COLON ID brace_open struct_declaration_list brace_close
+                                        | struct_or_union ID COLON TYPEID brace_open struct_declaration_list brace_close
+                                        | struct_or_union TYPEID COLON ID brace_open struct_declaration_list brace_close
+                                        | struct_or_union TYPEID COLON TYPEID brace_open struct_declaration_list brace_close
         """
-        if len(p) > 5:
+        if len(p) > 6:
             decls = p[6]
             establish_subclass_relationship(p[2],p[4])
         else:
@@ -818,7 +818,7 @@ class CParser(PLYParser):
         klass = self._select_struct_union_class(p[1])
         p[0] = klass(
             name=p[2],
-            decls=,
+            decls=decls,
             coord=self._coord(p.lineno(2)))
 
     def p_struct_or_union(self, p):
