@@ -45,6 +45,9 @@ class NestedDict(object):
         for elem in self.path:
             current_node = current_node[elem]
         current_node[name] = value
+        if name is None:
+            pprint.pprint(value)
+            assert(False)
 
 def normalize_type_name(x):
     if isinstance(x,list):
@@ -66,6 +69,11 @@ class SymbolTableBuilder(c_ast.NodeVisitor):
     """
         This subclass of NodeVisitor builds the symbol table.
         Still a work-in-progress.
+
+	class is represented as a triple of empty string, list of data, list of methods
+	pointers are pairs of dimension, type, just like arrays
+	structs are list of ordered pairs of name, type
+	namespaces/scopes are dicts
     """
     def __init__(self):
         """
@@ -139,14 +147,25 @@ class SymbolTableBuilder(c_ast.NodeVisitor):
                 the_type = get_type(the_type)
                 if isinstance(the_type,c_ast.Struct):
                     the_type_name = "struct "+the_type.name
+                elif isinstance(the_type,c_ast.Class):
+                    the_type_name = "class "+the_type.name
                 else:
                     if isinstance(the_type,c_ast.IdentifierType):
                         the_type_name = normalize_type_name(the_type.names)
                     else:
                         the_type_name = the_type.name
                 what.insert(node.name,('',the_type_name))
+            elif isinstance(the_type,c_ast.Class):
+                #the_type_name = "class "+the_type.name
+                #what.insert(the_type_name,the_type)
+                self.visit(the_type)
+                # do generic_visit on the_type to complete the entry in the symbol table
             else:
+                #pprint.pprint(node.name)
+                #pprint.pprint(the_type)
+                #assert(False)
                 what.insert(node.name,the_type)
+
     def visit_FuncDef(self,node):
         """
             this gets called, as part of the visitor design pattern,
@@ -171,6 +190,17 @@ class SymbolTableBuilder(c_ast.NodeVisitor):
         del what.path[-1]
         self.types.values["struct "+node.name] = what["struct "+node.name]
     
+    def visit_Class(self,node):
+        if "visiting_typedef" in self.state:
+            what = self.types
+        else:
+            what = self.values
+        what["class "+node.name] = []
+        what.path.append("class "+node.name)
+        self.generic_visit(node)
+        del what.path[-1]
+        self.types.values["class "+node.name] = what["class "+node.name]
+
     def visit_Typedef(self,node):
         item_of_interest = get_type(get_type(node))
         if isinstance(item_of_interest,c_ast.IdentifierType):
@@ -184,6 +214,8 @@ class SymbolTableBuilder(c_ast.NodeVisitor):
             the_type = get_type(get_type(node))
             if isinstance(the_type,c_ast.Struct):
                 self.types[node.name] = "struct "+the_type.name
+            elif isinstance(the_type,c_ast.Class):
+                self.types[node.name] = "class "+the_type.name
 
 class Identifier(object):
     def __init__(self,name):
