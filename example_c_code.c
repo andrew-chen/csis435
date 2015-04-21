@@ -38,11 +38,13 @@ long g;
 unsigned long h;
 signed long i;
 } zoo;
+
 class Test {
 	void foo();
 	void foo2();
 	int i;
 };
+
 void Test::foo() {
 return;
 };
@@ -50,10 +52,5 @@ return;
 void Testing() {
     class Test * t;
     t = new Test;
-};
-
-class Test2:Test {
-	void bar();
-	void foo();
-	int j;
+    t->foo2();
 };
