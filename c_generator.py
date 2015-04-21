@@ -7,6 +7,7 @@
 # License: BSD
 #------------------------------------------------------------------------------
 import c_ast
+import class_information
 
 
 class CGenerator(object):
@@ -14,13 +15,21 @@ class CGenerator(object):
         return a value from each visit method, using string accumulation in
         generic_visit.
     """
-    def __init__(self):
+    def __init__(self,st):
         self.output = ''
 
         # Statements start with indentation of self.indent_level spaces, using
         # the _make_indent method
         #
         self.indent_level = 0
+
+	self.about_to_see_scope_name = False
+	self.path = []
+	self._show_path()
+	self.symbol_table = st
+
+    def _show_path(self):
+        print "path is "+str(self.path)
 
     def _make_indent(self):
         return ' ' * self.indent_level
@@ -47,8 +56,27 @@ class CGenerator(object):
         return arrref + '[' + self.visit(n.subscript) + ']'
 
     def visit_StructRef(self, n):
+        self.symbol_table.values.path = self.path
+        print "n is: "+str(n)
+        print "n.name is: "+self.visit(n.name)
+        the_field  = self.visit(n.field)
+        print "n.field is: "+the_field
+        ltype = self.symbol_table.typeof(self.visit(n.name))
+        print "ltype is: "+str(ltype)
+        if isinstance(ltype,tuple):
+            dim, ptr_type = ltype
+            if class_information.is_class(ptr_type):
+                the_class = class_information.lookup_class(ptr_type)
+                the_methods = the_class.methods
+                print(the_methods)
+                print(the_field)
+                if (the_field in the_methods):
+                    the_index = the_methods.index(the_field)
+                    print(the_index)
+                    sref = self._parenthesize_unless_simple(n.name)
+                    return sref + n.type +"vtable["+ str(the_index) +"]"
         sref = self._parenthesize_unless_simple(n.name)
-        return sref + n.type + self.visit(n.field)
+        return sref + n.type + the_field
 
     def visit_FuncCall(self, n):
         fref = self._parenthesize_unless_simple(n.name)
@@ -97,6 +125,18 @@ class CGenerator(object):
         # no_type is used when a Decl is part of a DeclList, where the type is
         # explicitly only for the first declaration in a list.
         #
+        if self.about_to_see_scope_name:
+            self.about_to_see_scope_name = False
+            self.path.append(n.name)
+	    self._show_path()
+            self.path.append("...")
+	    self._show_path()
+            s = n.name if no_type else self._generate_decl(n)
+            if n.bitsize: s += ' : ' + self.visit(n.bitsize)
+            if n.init:
+                s += ' = ' + self._visit_expr(n.init)
+            del self.path[-1]
+	    self._show_path()
         s = n.name if no_type else self._generate_decl(n)
         if n.bitsize: s += ' : ' + self.visit(n.bitsize)
         if n.init:
@@ -113,7 +153,11 @@ class CGenerator(object):
     def visit_Typedef(self, n):
         s = ''
         if n.storage: s += ' '.join(n.storage) + ' '
+        self.path.append(n.name)
+	self._show_path()
         s += self._generate_type(n.type)
+        del self.path[-1]
+	self._show_path()
         return s
 
     def visit_Cast(self, n):
@@ -147,11 +191,16 @@ class CGenerator(object):
         return s
 
     def visit_FuncDef(self, n):
+        self.about_to_see_scope_name = True
         decl = self.visit(n.decl)
         self.indent_level = 0
         body = self.visit(n.body)
         if n.param_decls:
             knrdecls = ';\n'.join(self.visit(p) for p in n.param_decls)
+        self.about_to_see_scope_name = False
+        del self.path[-1]
+	self._show_path()
+        if n.param_decls:
             return decl + '\n' + knrdecls + ';\n' + body + '\n'
         else:
             return decl + '\n' + body + '\n'
@@ -289,6 +338,7 @@ class CGenerator(object):
         if name in ["class"]:
             is_class = True
             vtable_index = 0
+            method_names = []
             c2 = ''
             name = 'struct'
             class_type = 'struct '+n.name
@@ -302,15 +352,20 @@ class CGenerator(object):
             s += '{\n'
             s += self._make_indent()
             s += 'void ** vtable;\n'
+            self.path.append(name+' '+n.name)
+	    self._show_path()
             for decl in n.decls:
                 if is_class:
                     if isinstance(decl.type,c_ast.FuncDecl):
 			    mangled_name = n.name+"_"+decl.name
+			    method_names.append(decl.name)
 			    print "mangled_name is: "+mangled_name
 			    c2 += "vtable["+str(vtable_index)+"] = (void*)"+mangled_name+";\n"
 			    vtable_index += 1
 			    continue
                 s += self._generate_stmt(decl)
+            del self.path[-1]
+	    self._show_path()
             if is_class:
                 c += "vtable =(void **)malloc("+str(vtable_index)+"*sizeof(void*));\n"
                 c += c2
@@ -320,6 +375,7 @@ class CGenerator(object):
             if is_class:
                 s += "\n"
                 s += c
+                class_information.Class(n.name,methods=method_names)
         return s
 
     def _generate_stmt(self, n, add_indent=False):
