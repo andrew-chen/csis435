@@ -38,3 +38,42 @@ class Bar:Foo {
 	void world();
 };
 */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// We actually need:
+obj->vtable[the_index](obj,args...)
+
+// We want syntax like:
+obj->memberFunc(args)
+
+
