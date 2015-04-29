@@ -40,7 +40,7 @@ signed long i;
 } zoo;
 
 class Test {
-	void foo();
+	void foo(int);
 	void foo2();
 	int i;
 };
@@ -53,4 +53,12 @@ void Testing() {
     class Test * t;
     t = new Test;
     t->foo2();
+    t->foo(5);
 };
+
+class Test2:Test {
+	void foo2();
+	void bar();
+	int j;
+};
+
