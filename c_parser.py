@@ -15,6 +15,8 @@ from c_lexer import CLexer
 from plyparser import PLYParser, Coord, ParseError
 from ast_transforms import fix_switch_cases
 
+import class_information
+
 
 class CParser(PLYParser):
     def __init__(
@@ -812,7 +814,7 @@ class CParser(PLYParser):
         """
         if len(p) > 6:
             decls = p[6]
-            establish_subclass_relationship(p[2],p[4])
+            class_information.establish_subclass_relationship(p[2],p[4])
         else:
             decls = p[4]
         klass = self._select_struct_union_class(p[1])
