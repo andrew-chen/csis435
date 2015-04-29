@@ -4,6 +4,10 @@ class Class(object):
 		self.parent = parent
 		self.methods = methods
 		global classes
+		if self.name in classes:
+			assert(parent is None)
+			assert(0 == len(classes[self.name].methods))
+			self.parent = classes[self.name].parent
 		classes[self.name] = self
 	def dump_info(self):
 		print "name = "+self.name
@@ -12,6 +16,10 @@ class Class(object):
 		else:
 			print "parent = "+self.parent.name
 		print "methods = "+str(self.methods)
+	def get_vtable_info(self):
+		names = []
+		mangled_names = {}
+		WORK HERE
 
 global classes
 try:
@@ -33,11 +41,17 @@ def lookup_class(name):
 			return value
 	assert(False)
 
-def establish_subclass_relationship(parent_class,child_class):
+def establish_subclass_relationship(child_class,parent_class):
 	global classes
-	assert(parent_class in classes)
+	print "classes is "+str(classes)
+	print "parent is "+str(parent_class)
+	print "child is "+str(child_class)
 	assert(not(child_class in classes))
-	classes[child_class] = Class(child_class,parent_class)
+	if parent_class in classes:
+		parent = classes[parent_class]
+	else:
+		parent = Class(parent_class)
+	classes[child_class] = Class(child_class,parent)
 
 def dump_info():
 	global classes
