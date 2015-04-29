@@ -68,11 +68,8 @@ class CGenerator(object):
             if class_information.is_class(ptr_type):
                 the_class = class_information.lookup_class(ptr_type)
                 the_methods = the_class.methods
-                print(the_methods)
-                print(the_field)
                 if (the_field in the_methods):
                     the_index = the_methods.index(the_field)
-                    print(the_index)
                     sref = self._parenthesize_unless_simple(n.name)
                     return sref + n.type +"vtable["+ str(the_index) +"]"
         sref = self._parenthesize_unless_simple(n.name)
@@ -80,6 +77,20 @@ class CGenerator(object):
 
     def visit_FuncCall(self, n):
         fref = self._parenthesize_unless_simple(n.name)
+        if isinstance(n.name,c_ast.StructRef):
+            lvalue = self.visit(n.name.name)
+            ltype = self.symbol_table.typeof(lvalue)
+            if isinstance(ltype,tuple):
+                dim, ptr_type = ltype
+                if class_information.is_class(ptr_type):
+                    the_class = class_information.lookup_class(ptr_type)
+                    the_methods = the_class.methods
+                    if (self.visit(n.name.field) in the_methods):
+                        if n.args:
+                            return fref + '(' + lvalue+ "," + self.visit(n.args) + ')'
+                        else:
+                            return fref + '(' + lvalue+ ')'
+
         return fref + '(' + self.visit(n.args) + ')'
 
     def visit_UnaryOp(self, n):
@@ -359,14 +370,18 @@ class CGenerator(object):
                     if isinstance(decl.type,c_ast.FuncDecl):
 			    mangled_name = n.name+"_"+decl.name
 			    method_names.append(decl.name)
-			    print "mangled_name is: "+mangled_name
-			    c2 += "vtable["+str(vtable_index)+"] = (void*)"+mangled_name+";\n"
-			    vtable_index += 1
 			    continue
                 s += self._generate_stmt(decl)
             del self.path[-1]
 	    self._show_path()
             if is_class:
+                the_class = class_information.Class(n.name,methods=method_names)
+                if the_class.parent:
+                    assert(False)
+                for decl in n.decls:
+                    if isinstance(decl.type,c_ast.FuncDecl):
+			    c2 += "vtable["+str(vtable_index)+"] = (void*)"+mangled_name+";\n"
+			    vtable_index += 1
                 c += "vtable =(void **)malloc("+str(vtable_index)+"*sizeof(void*));\n"
                 c += c2
                 c += "}\n"
@@ -375,7 +390,6 @@ class CGenerator(object):
             if is_class:
                 s += "\n"
                 s += c
-                class_information.Class(n.name,methods=method_names)
         return s
 
     def _generate_stmt(self, n, add_indent=False):
