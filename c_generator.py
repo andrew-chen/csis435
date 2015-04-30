@@ -348,7 +348,6 @@ class CGenerator(object):
         is_class = False
         if name in ["class"]:
             is_class = True
-            vtable_index = 0
             method_names = []
             c2 = ''
             name = 'struct'
@@ -368,7 +367,6 @@ class CGenerator(object):
             for decl in n.decls:
                 if is_class:
                     if isinstance(decl.type,c_ast.FuncDecl):
-			    mangled_name = n.name+"_"+decl.name
 			    method_names.append(decl.name)
 			    continue
                 s += self._generate_stmt(decl)
@@ -376,13 +374,9 @@ class CGenerator(object):
 	    self._show_path()
             if is_class:
                 the_class = class_information.Class(n.name,methods=method_names)
-                if the_class.parent:
-                    assert(False)
-                for decl in n.decls:
-                    if isinstance(decl.type,c_ast.FuncDecl):
-			    c2 += "vtable["+str(vtable_index)+"] = (void*)"+mangled_name+";\n"
-			    vtable_index += 1
-                c += "vtable =(void **)malloc("+str(vtable_index)+"*sizeof(void*));\n"
+                for index, method, mangled_name in the_class.get_vtable_info():
+                    c2 += "result->vtable["+str(index)+"] = (void*)"+mangled_name+";\n"
+                c += "result->vtable =(void **)malloc("+str(len(list(the_class.get_vtable_info())))+"*sizeof(void*));\n"
                 c += c2
                 c += "}\n"
             self.indent_level -= 2
