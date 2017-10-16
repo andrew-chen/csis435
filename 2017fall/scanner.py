@@ -12,7 +12,7 @@ class Token(object):
 	def __str__(self):
 		return self.filename+":"+str(self.line)+": "+self.value
 	def __repr__(self):
-		return 'Token("'+self.filename+'",'+str(self.line)+','+self.value+'")'
+		return 'Token('+repr(self.filename)+','+str(self.line)+','+repr(self.value)+')'
 
 def scan(filename):
 	the_file = open(filename,"Ur")

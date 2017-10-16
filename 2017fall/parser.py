@@ -3,6 +3,11 @@ class Parser(object):
 		self.tokens, self.scanner = [], scanner
 	def expressions(self):
 		while True:
+			"""
+				we use while True and next() because
+				if the generator is no longer able to produce anything
+				then we want the corresponding exception to be thrown
+			"""
 			token = next(self.scanner)
 			if token.value == '(':
 				L = []

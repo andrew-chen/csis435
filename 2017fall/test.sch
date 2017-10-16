@@ -16,3 +16,12 @@
 (fact 3)
 (fact 4)
 (fact 5)
+(defun sumfromto (x y) (cond
+        (< x y) (+ x (sumfromto (+ x 1) y))
+        else x
+))
+(sumfromto 1 1)
+(sumfromto 1 2)
+(sumfromto 2 4)
+(sumfromto 4 8)
+(sumfromto 1 10)

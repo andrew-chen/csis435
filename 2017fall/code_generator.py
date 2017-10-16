@@ -78,7 +78,9 @@ class Compiler(object):
 				return ir.Constant(double,x)
 			if isinstance(x,int):
 				return ir.Constant(double,x+0.0)
-			print(x)
+			if isinstance(x,map):
+				return build(*list(x))
+			pprint(x)
 			assert(False)
 		def build(op,*args):
 			if op == "if":
@@ -111,7 +113,7 @@ class Compiler(object):
 				result = builder.uitofp(result, ir.DoubleType(), 'booltmp')
 			else:
 				# must be a function call
-				result = builder.call(find_function(op),map(evaluate,args))
+				result = builder.call(find_function(op),list(map(evaluate,args)))
 			return result
 		result = build(*body)
 		builder.ret(result)
@@ -137,7 +139,7 @@ class Compiler(object):
 		k = len(args)
 		cfunc = ckargfuncty(k)(func_ptr)
 		
-		res = cfunc(*(map(float,args)))
+		res = cfunc(*(list(map(float,args))))
 		print(name+"(...) =", res)
 
 if __name__ == "__main__":
