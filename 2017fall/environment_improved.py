@@ -1,10 +1,12 @@
-from parser import Parser
+from plyplus_front import Parser, enhanced_list
 from scope_improved import Scope, ScopeEntry
 from scanner import scan
 from sys import argv
 from pprint import pprint
 import operator as op
 import math
+
+import type_support
 
 def setup_environment(s):
 	env = s.table
@@ -17,6 +19,7 @@ def setup_environment(s):
 				return x(*args,**kwargs)
 			except TypeError:
 				raise
+		g.return_type = enhanced_list(["single",])
 		return g
 	def map_onto_values(d,f):
 		r = {}
@@ -30,6 +33,7 @@ def setup_environment(s):
 			result[key] = ScopeEntry(key,None,None,value=value)
 		return result
 	env.update(adjust(vars(math))) # sin, cos, sqrt, pi, ...
+	env.update(adjust(vars(type_support))) # int, float, array, ...
 	env.update(adjust({
 	'+':op.add, '-':op.sub, '*':op.mul, '/':op.truediv, 
 	'>':op.gt, '<':op.lt, '>=':op.ge, '<=':op.le, '=':op.eq, 
@@ -61,8 +65,33 @@ def setup_environment(s):
 			pprint(args)
 		else:
 			pass
-	def defun(scope,name,pargs,body,parse_tree):
+	def typedef(scope,name,type_expression):
+		from interpreter_improved import evaluate
+		assert(name != "x")
+		return scope.declare_and_define(name,value=evaluate(scope,type_expression),kind=None,Type=None)
+	result = s.declare_and_define("typedef",None,None,value=typedef)
+	def defun(scope,return_type,name,pargs,body,parse_tree):
+		"""
+			pargs is a list of the parameter args
+			if no types are provided,
+				then it is a list of the names
+			if types are provided,
+				then it is a list of lists,
+					and those lists have
+						type then name
+		"""
 		vprint("defun",name,pargs,body)
+		original_pargs = pargs
+		pargs = []
+		targs = []
+		for item in original_pargs:
+			if isinstance(item,list):
+				pargs.append(item[1])
+				targs.append(item[0])
+			else:
+				pargs.append(item)
+				targs.append(None)
+		
 		scope.declare(name,None,None)
 		name = name
 		assert(name != "x")
@@ -89,10 +118,21 @@ def setup_environment(s):
 		f.is_defun = True
 		f.name = name
 		f.pargs = pargs
+		f.targs = targs
 		f.body = body
+		f.return_type = return_type
 		return f
 	result = s.declare_and_define("defun",None,None,value=defun)
 	result.value.defun_defun = True
+	def _if(scope,q,b1,b2):
+		from interpreter_improved import evaluate
+		t = evaluate(scope,q)
+		if t:
+			return evaluate(scope,b1)
+		else:
+			return evaluate(scope,b2)
+	_if.return_type = enhanced_list(["single",])
+	s.declare_and_define("if",None,None,value=_if)
 	def cond(scope,*body):
 		from interpreter_improved import evaluate
 		l = len(body)

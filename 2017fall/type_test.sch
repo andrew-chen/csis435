@@ -1,0 +1,5 @@
+(typedef int (integer 32))
+(typedef float (single))
+(typedef double (double))
+(typedef coordinate (array int 2))
+(typedef example (struct int float double))

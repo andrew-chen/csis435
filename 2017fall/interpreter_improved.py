@@ -5,7 +5,7 @@ from pprint import pprint
 import operator as op
 import math
 
-verbose = True
+verbose = False
 def vprint(*args):
 	if verbose:
 		pprint(args)
@@ -13,12 +13,12 @@ def vprint(*args):
 		pass
 
 def evaluate(sc,e,pt=None):
-	print("in evaluate")
-	pprint(e)
+	#print("in evaluate")
+	#pprint(e)
 	if isinstance(e,list):
 		e0 = e[0]
 		scope_entry = sc[e0]
-		print(scope_entry)
+		#print(scope_entry)
 		function = scope_entry.value
 		dd = False
 		try:
@@ -59,3 +59,13 @@ if __name__ == "__main__":
 			print(v.parse_tree)
 		except:
 			pass
+	print("typedefs are:")
+	import llvmlite
+	import llvmlite.ir
+	for k,v in s.table.items():
+		try:
+			assert(isinstance(v.value,llvmlite.ir.Type))
+			print(k,": ",v.value)
+		except:
+			pass
+

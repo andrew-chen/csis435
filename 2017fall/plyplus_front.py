@@ -1,4 +1,5 @@
 from plyplus import Grammar
+class enhanced_list(list):pass
 def process_parse_tree(x):
 	if x.head == "atom":
 		v = x.tail
@@ -14,7 +15,7 @@ def process_parse_tree(x):
 	elif x.head == "start":
 		return x.tail
 	elif x.head == "list":
-		return [process_parse_tree(item) for item in x.tail]
+		return enhanced_list([process_parse_tree(item) for item in x.tail])
 	else:
 		assert(False)
 import sys
