@@ -1,9 +1,10 @@
 """
+	This calls the code generator of llvmlite.binding
 """
 
 from __future__ import print_function
 
-from ctypes import CFUNCTYPE, c_double
+from ctypes import CFUNCTYPE, c_double, c_float, c_long
 
 import llvmlite.binding as llvm
 
@@ -18,18 +19,30 @@ llvm.initialize_native_asmprinter()  # yes, even this one
 
 from llvmlite import ir
 
-# Create some useful types
-double = ir.DoubleType()
-def kargfuncty(k):
-	args = tuple(double for i in range(k))
-	fnty = ir.FunctionType(double, args)
-	return fnty
-def ckargfuncty(k):
-	sig = tuple(c_double for i in range(k+1))
-	cfunty = CFUNCTYPE(*sig)
-	return cfunty
+import type_support
 
-	
+def function_type(ret_type,arg_types):
+	fnty = ir.FunctionType(ret_type, arg_types)
+	return fnty
+def c_type_for_llvm_type(a_type):
+	if isinstance(a_type,type_support.integer):
+		return c_long
+	elif isinstance(a_type,type_support.single):
+		return c_float
+	elif isinstance(a_type,type_support.double):
+		return c_double
+	elif isinstance(a_type,type_support.array):
+		the_type = a_type.element
+		the_count = a_type.count
+		return c_type_for_llvm_type(the_type) * the_count
+	elif isinstance(a_type,type_support.struct):
+		class Struct(ctypes.Structure):
+			_fields_ = list(("l"+str(key),c_type_for_llvm_type(value)) for (key,value) in enumerate(a_type.elements))
+		return Struct
+def c_function_type_for_llvm_type(ret_type,arg_types):
+	arg_types = map(c_type_for_llvm_type,arg_types)
+	cfunty = CFUNCTYPE(c_type_for_llvm_type(ret_type),*arg_types)
+	return cfunty
 
 class Compiler(object):
 	"""
@@ -54,9 +67,22 @@ class Compiler(object):
 
 		self.functions = {}
 
-	def function(self,name,params,body):
+	def function(self,name,params,body,return_type):
+		# identify the types
+		return_type = return_type
+		argument_types = [t for (t,name) in params]
+		argument_names = [name for (t,name) in params]
 		# declare a function 
-		func = ir.Function(self.module, kargfuncty(len(params)), name=name)
+		print("function name: ")
+		pprint(name)
+		print("return_type: ")
+		pprint(return_type)
+		print("argument_types: ")
+		pprint(argument_types)
+		print("argument_names: ")
+		pprint(argument_names)
+		print("creating the function: ")
+		func = ir.Function(self.module, function_type(return_type,argument_types), name=name)
 
 		self.functions[name] = func
 		# Now implement the function
@@ -64,7 +90,7 @@ class Compiler(object):
 		builder = ir.IRBuilder(block)
 		fargs = func.args
 		scope = {}
-		scope.update(zip(params,fargs))
+		scope.update(zip(argument_names,fargs))
 		def find_function(name):
 			return self.functions[name]
 		def evaluate(x):
@@ -75,42 +101,92 @@ class Compiler(object):
 			if x in scope.keys():
 				return scope[x]
 			if isinstance(x,float):
-				return ir.Constant(double,x)
+				return ir.Constant(type_support.double(),x)
 			if isinstance(x,int):
-				return ir.Constant(double,x+0.0)
+				return ir.Constant(type_support.signed(32),x)
 			if isinstance(x,map):
 				return build(*list(x))
+			pprint(scope)
 			pprint(x)
 			assert(False)
 		def build(op,*args):
+			import type_annotation
+
 			if op == "if":
 				(pred,then_part,else_part) = tuple(args)
-				cmp = builder.fcmp_ordered( '!=', evaluate(pred), ir.Constant(ir.DoubleType(), 0.0))
+				
+				evaluated_pred = evaluate(pred)
+				
+				evaluated_pred_type = type_support.get_type(evaluated_pred)
+
+				evaluation_result = evaluated_pred
+				
+				comparison_constant = ir.Constant(type_support.double(), 0.0)
+				
+				double_type = type_support.get_type(comparison_constant)
+				
+				cast_result = type_support.cast_to_double(evaluation_result,builder=builder)
+				cmp = builder.fcmp_ordered( '!=', cast_result, comparison_constant,name="fcmptmp")
+				results = []
+				
+				pprint([
+					evaluated_pred_type,
+					double_type,
+					evaluation_result.type,
+					comparison_constant.type,
+					cast_result.type,
+					cmp.type
+				])
+				
+				print(builder.module)
+				
+				#assert(False)
+								
 				with builder.if_else(cmp) as (then, otherwise):
 					with then:
 						# emit instructions for when the predicate is true
 						then_val = evaluate(then_part)
+						# all ifs have type double
+						v1_type,v1_value = type_support._normalize_type_(comparison_constant)
+						then_val = v1_type.cast(v1_value,then_val,builder)
 						then_block = builder.block
-						
+						results.append( (then_val,then_block) )
 					with otherwise:
 						# emit instructions for when the predicate is false
 						else_val = evaluate(else_part)
+						# all ifs have type double
+						v1_type,v1_value = type_support._normalize_type_(comparison_constant)
+						else_val = v1_type.cast(v1_value,else_val,builder)
 						else_block = builder.block
+						results.append( (else_val,else_block) )
 				# emit instructions following the if-else block
-				phi = builder.phi(ir.DoubleType(), 'iftmp')
+				phi = builder.phi(type_annotation.unify(results,builder), 'iftmp')
 				phi.add_incoming(then_val, then_block)
 				phi.add_incoming(else_val, else_block)
 				return phi
 			result = None
 			if op == "+":
-				result = builder.fadd(evaluate(args[0]), evaluate(args[1]), name="addtmp")
+				v1_type,v1_value = type_support._normalize_type_(evaluate(args[0]))
+				return v1_type.add(v1_value,v1=v1_value,v2=evaluate(args[1]),builder=builder)
+				#result = builder.fadd(evaluate(args[0]), evaluate(args[1]), name="addtmp")
 			elif op == "-":
-				result = builder.fsub(evaluate(args[0]), evaluate(args[1]), name="subtmp")
+				v1_type,v1_value = type_support._normalize_type_(evaluate(args[0]))
+				return v1_type.sub(v1_value,v1=v1_value,v2=evaluate(args[1]),builder=builder)
+				#result = builder.fsub(evaluate(args[0]), evaluate(args[1]), name="subtmp")
 			elif op == "*":
-				result = builder.fmul(evaluate(args[0]), evaluate(args[1]), name="multmp")
+				v1_type,v1_value = type_support._normalize_type_(evaluate(args[0]))
+				return v1_type.mul(v1_value,v1=v1_value,v2=evaluate(args[1]),builder=builder)
+				#result = builder.fmul(evaluate(args[0]), evaluate(args[1]), name="multmp")
 			elif op == "<":
-				result = builder.fcmp_ordered("<",evaluate(args[0]), evaluate(args[1]))
+				v1_type,v1_value = type_support._normalize_type_(evaluate(args[0]))
+				result = v1_type.lt(v1_value,v1=v1_value,v2=evaluate(args[1]),builder=builder)
 				result = builder.uitofp(result, ir.DoubleType(), 'booltmp')
+				print("< result type")
+				pprint(result.type)
+				result = type_support.cast_to_double(result,builder)
+				print("< result type after casting")
+				pprint(result.type)
+				return result
 			else:
 				# must be a function call
 				result = builder.call(find_function(op),list(map(evaluate,args)))
@@ -145,12 +221,12 @@ class Compiler(object):
 if __name__ == "__main__":
 	c = Compiler()
 	#c.function("test",("*",2.0,("+",1.0,3.0)))
-	c.function("perimeter",["a","b"],("*",2.0,("+","a","b")))
+	#c.function("perimeter",["a","b"],("*",2.0,("+","a","b")))
 	#c.function("condtest",("if",("<",1.0,2.0),3.0))
-	c.function("condtest",["a","b"],("if",("<","a","b"),3.0,4.0))
+	#c.function("condtest",["a","b"],("if",("<","a","b"),3.0,4.0))
 	c.compile()
-	c.call_func("condtest",3,4)
-	c.call_func("condtest",4,3)
-	c.call_func("perimeter",3,4)
+	#c.call_func("condtest",3,4)
+	#c.call_func("condtest",4,3)
+	#c.call_func("perimeter",3,4)
 	c.generate_object_code()
 

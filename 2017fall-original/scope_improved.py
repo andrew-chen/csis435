@@ -1,9 +1,5 @@
-import pprint
-import llvmlite
-import llvmlite.ir
-from llvmlite.ir import Type
 class ScopeEntry(object):
-	def __init__(self,name,kind=None,Type=None,parse_tree=None,ir=None,value=None):
+	def __init__(self,name,kind,Type,parse_tree=None,ir=None,value=None):
 		self.name = name
 		self.kind = kind
 		self.Type = Type
@@ -21,12 +17,9 @@ class Scope(object):
 		if name in self.table.keys(): return self
 		if self.parent:
 			try: return self.parent._get_enclosing_scope(name)
-			except: pass
-		else: pass
-		if isinstance(name,Type):
-			raise KeyError("No such name: "+str(name))
-		raise KeyError("No such name: "+str(name))
-	def declare(self,name,kind=None,Type=None):
+			except: raise KeyError("No such name: "+str(name))
+		else: raise KeyError("No such name: "+str(name))
+	def declare(self,name,kind,Type):
 		result = ScopeEntry(name,kind,Type)
 		self.table[name] = result
 		return result
@@ -40,7 +33,7 @@ class Scope(object):
 		scope.ir = ir
 		scope.value = value
 		return scope
-	def declare_and_define(self,name,kind=None,Type=None,parse_tree=None,ir=None,value=None):
+	def declare_and_define(self,name,kind,Type,parse_tree=None,ir=None,value=None):
 		scope_entry = self.declare(name,kind,Type)
 		if parse_tree != None:
 			assert(scope_entry.parse_tree == None)

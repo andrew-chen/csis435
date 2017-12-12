@@ -1,10 +1,14 @@
-from parser import Parser
-from scope import Scope
+from plyplus_front import Parser
+from enhanced import enhanced_list, vprint
+from scope import Scope, ScopeEntry
 from scanner import scan
 from sys import argv
 from pprint import pprint
 import operator as op
 import math
+
+import type_support
+import language_builtins
 
 def setup_environment(s):
 	env = s.table
@@ -13,7 +17,11 @@ def setup_environment(s):
 		from interpreter import evaluate
 		def g(s,*args,**kwargs):
 			args = [evaluate(s,arg) for arg in args]
-			return x(*args,**kwargs)
+			try:
+				return x(*args,**kwargs)
+			except TypeError:
+				raise
+		g.return_type = type_support.single()
 		return g
 	def map_onto_values(d,f):
 		r = {}
@@ -21,8 +29,11 @@ def setup_environment(s):
 			r[k] = f(v)
 		return r
 	def adjust(d):
-		return map_onto_values(d,evaluate_in_context_of_first)
-	env.update(adjust(vars(math))) # sin, cos, sqrt, pi, ...
+		adjusted = map_onto_values(d,evaluate_in_context_of_first)
+		result = {}
+		for key,value in adjusted.items():
+			result[key] = ScopeEntry(key,None,None,value=value)
+		return result
 	env.update(adjust({
 	'+':op.add, '-':op.sub, '*':op.mul, '/':op.truediv, 
 	'>':op.gt, '<':op.lt, '>=':op.ge, '<=':op.le, '=':op.eq, 
@@ -47,55 +58,26 @@ def setup_environment(s):
 	'round':   round,
 	'symbol?': lambda x: isinstance(x, Symbol),
 	}))
+	env.update(adjust(vars(math))) # sin, cos, sqrt, pi, ...
+	env.update(adjust(vars(type_support))) # int, float, array, ...
 
-	verbose = False
-	def vprint(*args):
-		if verbose:
-			pprint(args)
-		else:
-			pass
-	def defun(scope,name,pargs,body):
-		vprint("defun",name,pargs,body)
-		scope.declare(name)
-		name = name
-		assert(name != "x")
-		def f(s,*args):
-			from interpreter import evaluate
-			vprint(name,args)
-			assert(name != "x")
-			vprint("in function named: "+name+" with parameters named: "+str(pargs))
-			ns = Scope()
-			ns.parent = scope
-			vprint("setting up args "+str(pargs)+" "+str(args))
-			for key,value in zip(pargs,args):
-				to_assign = evaluate(s,value)
-				vprint("in "+name+" assigning "+str(to_assign)+" to "+key)
-				ns.declare_and_assign(key,to_assign)
-			vprint("set up args")
-			#ns.dump()
-			vprint("end of args")
-			vprint("evaluating body")
-			result = evaluate(ns,body)
-			vprint("done evaluating body")
-			return result
-		scope.assign(name,f)
-		f.is_defun = True
-		f.name = name
-		f.pargs = pargs
-		f.body = body
-		return f
-	s.declare_and_assign("defun",defun)
-	def cond(scope,*body):
-		from interpreter import evaluate
-		l = len(body)
-		assert(l == ((l/2)*2)) # assert is even
-		for i in range(int(l/2)):
-			q = body[i*2]
-			b = body[i*2+1]
-			if q == "else":
-				return evaluate(scope,b)
-			if evaluate(scope,q):
-				return evaluate(scope,b)
-		return None
-	s.declare_and_assign("cond",cond)
+	def scoped(d):
+		result = {}
+		for key,value in d.items():
+			result[key] = ScopeEntry(key,None,None,value=value)
+		return result
+
+
+	"""
+		note the use of "scoped" instead of "adjusted" in the inclusion of "language builtins"
+	"""
+	env.update(scoped(vars(language_builtins))) 
+	"""
+		special adjustments
+	"""
+	env["defun"].value.defun_defun = True
+	env["if"] = env["_if"]
+	env["if"].value.return_type = type_support.single()
+	
 	return s
+	

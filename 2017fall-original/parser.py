@@ -1,7 +1,6 @@
-from enhanced import enhanced_list, enhanced_str, enhanced_int, enhanced_float
 class Parser(object):
 	def __init__(self,scanner):
-		self.tokens, self.scanner, self.residual = [], scanner, []
+		self.tokens, self.scanner = [], scanner
 	def expressions(self):
 		while True:
 			"""
@@ -11,35 +10,23 @@ class Parser(object):
 			"""
 			token = next(self.scanner)
 			if token.value == '(':
-				L = enhanced_list()
-				L.filename = token.filename
-				L.line = token.line
-				L.token = token
+				L = []
 				try:
 					for e in self.expressions():
 						L.append(e)
 				except SyntaxError: # assume is unexpected right paren
 					yield L
-					continue
-				# if there is a StopIteration, we are at the end of the file
-				self.residual.append(L)
-				raise StopIteration
 			elif token.value == ')': raise SyntaxError('unexpected )')
-			else:
-				result = atom(token)
-				result.line = token.line
-				result.filename = token.filename
-				result.token = token
-				yield result
+			else: yield atom(token)
 
 def atom(token):
     "Numbers become numbers; every other token is a symbol."
     token = token.value
-    try: return enhanced_int(token)
+    try: return int(token)
     except ValueError:
-        try: return enhanced_float(token)
+        try: return float(token)
         except ValueError:
-            return enhanced_str(token)
+            return str(token)
 
 if __name__ == "__main__":
 	import pprint, scanner, sys
@@ -47,5 +34,3 @@ if __name__ == "__main__":
 	p = Parser(s)
 	for e in p.expressions():
 		pprint.pprint(e)
-	if len(p.residual) > 0:
-		print("unmatched "+repr(p.residual[0].token))

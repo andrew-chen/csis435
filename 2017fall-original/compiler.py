@@ -1,10 +1,9 @@
-from plyplus_front import Parser
+from parser import Parser
+from scanner import scan
 from sys import argv
 from pprint import pprint
 from code_generator import Compiler
 from interpreter import evaluate, s
-from enhanced import enhanced_list, enhanced_int, enhanced_float
-from type_annotation import get_argument_type, infer_the_type, infer_return_type, type_annotate
 def transform_cond(body):
 	"""
 		body is an expression
@@ -26,10 +25,10 @@ def transform_cond(body):
 				else:
 					conditions.append((transform_cond(q),transform_cond(b)))
 			q1, b1 = conditions[0]
-			result = enhanced_list(["if",q1,b1])
+			result = ["if",q1,b1]
 			temp = result
 			for q,b in conditions[1:]:
-				new_temp = enhanced_list(["if",q,b])
+				new_temp = ["if",q,b]
 				temp.append(new_temp)
 				temp = new_temp
 			if seen_else:
@@ -38,24 +37,20 @@ def transform_cond(body):
 				temp.append(0.0)
 			return result
 		else:
-			return enhanced_list(map(transform_cond,body))
-	elif isinstance(body,int):
-		return enhanced_int(body)
-	elif isinstance(body,float):
-		return enhanced_float(body)
+			return map(transform_cond,body)
 	else:
 		return body
 if __name__ == "__main__":
-	p = Parser(None)
+	p = Parser(scan(argv[1]))
 	for e in p.expressions():
 		pprint(evaluate(s,e))
 	print("defuns are:")
 	defuns = {}
 	for k,v in s.table.items():
 		try:
-			assert(v.value.is_defun == True)
+			assert(v.is_defun == True)
 			print(k)
-			defuns[k] = v.value
+			defuns[k] = v
 		except:
 			pass
 	print("attempting to compile them")
@@ -64,7 +59,6 @@ if __name__ == "__main__":
 		print(k,v.__dict__)
 		transformed_body = transform_cond(v.body)
 		pprint(transformed_body)
-		transformed_body = type_annotate(transformed_body,v.pargs,v.targs,s)
-		c.function(v.name,v.complete_args,transformed_body,v.return_type)
+		c.function(v.name,v.pargs,transformed_body)
 	c.compile()
 	c.generate_object_code()
